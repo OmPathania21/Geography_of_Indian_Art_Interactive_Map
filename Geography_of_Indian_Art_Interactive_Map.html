@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Geography of Indian Art</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#fff;color:#222;overflow:hidden}
+.app{height:100vh;display:flex;position:relative}
+.sidebar{width:365px;background:#fff;z-index:1000;box-shadow:2px 0 10px rgba(0,0,0,.18);display:flex;flex-direction:column}
+.top{padding:18px 18px 12px;border-bottom:1px solid #ddd}
+h1{font-size:21px;margin:0 0 5px;font-weight:600}
+.subtitle{font-size:13px;color:#666;margin-bottom:14px}
+.search{width:100%;border:1px solid #ddd;border-radius:4px;padding:11px 12px;font-size:14px;outline:none}
+.search:focus{border-color:#777}
+.layers{padding:12px 18px;border-bottom:1px solid #eee}
+.layers-title{font-size:12px;text-transform:uppercase;color:#777;font-weight:bold;letter-spacing:.5px;margin-bottom:8px}
+.layer{display:flex;align-items:center;gap:9px;padding:6px 0;font-size:14px;cursor:pointer}
+.layer input{accent-color:#6f2d1f}
+.dot{width:10px;height:10px;border-radius:50%;display:inline-block}
+.list{overflow:auto;flex:1}
+.item{padding:13px 18px;border-bottom:1px solid #eee;cursor:pointer}
+.item:hover{background:#f6f6f6}
+.item h3{font-size:15px;margin:0 0 4px;font-weight:600}
+.item p{font-size:12px;color:#666;margin:0;line-height:1.35}
+.badge{display:inline-block;margin-top:6px;padding:3px 7px;border-radius:10px;background:#eee;font-size:10px;color:#555}
+.map{flex:1;position:relative}
+#map{height:100%;width:100%}
+.map-title{position:absolute;top:18px;left:18px;z-index:900;background:#fff;padding:10px 14px;border-radius:4px;box-shadow:0 1px 5px rgba(0,0,0,.25);font-size:15px;font-weight:600}
+.popup{width:290px}
+.popup img{width:100%;height:145px;object-fit:cover;border-radius:5px;margin-bottom:8px}
+.popup h2{font-size:18px;margin:0 0 5px;color:#6f2d1f}
+.popup .tag{display:inline-block;background:#ead7b7;padding:4px 8px;border-radius:12px;font-size:11px;margin-bottom:6px}
+.popup p{font-size:13px;line-height:1.45;margin:5px 0;color:#333}
+.popup strong{color:#6f2d1f}
+.legend{background:white;padding:10px 12px;border-radius:4px;box-shadow:0 1px 5px rgba(0,0,0,.25);font-size:12px;line-height:1.8}
+.legend b{display:block;margin-bottom:3px}
+@media(max-width:800px){
+ .sidebar{width:290px}
+ .map-title{display:none}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="top">
+      <h1>Geography of Indian Art</h1>
+      <div class="subtitle">Explore India's major art traditions, artists and historic centres.</div>
+      <input id="search" class="search" placeholder="Search places, styles or artists...">
+    </div>
+    <div class="layers">
+      <div class="layers-title">Layers</div>
+      <label class="layer"><input type="checkbox" checked data-cat="Classical & Ancient"> <span class="dot" style="background:#8b4513"></span> Classical & Ancient</label>
+      <label class="layer"><input type="checkbox" checked data-cat="Folk & Tribal"> <span class="dot" style="background:#b23a48"></span> Folk & Tribal</label>
+      <label class="layer"><input type="checkbox" checked data-cat="Miniature & Court"> <span class="dot" style="background:#2f5d8c"></span> Miniature & Court</label>
+      <label class="layer"><input type="checkbox" checked data-cat="Textile & Decorative"> <span class="dot" style="background:#477a52"></span> Textile & Decorative</label>
+      <label class="layer"><input type="checkbox" checked data-cat="Modern Indian Art"> <span class="dot" style="background:#8a5a9e"></span> Modern Indian Art</label>
+    </div>
+    <div id="list" class="list"></div>
+  </aside>
+  <main class="map">
+    <div class="map-title">Indian Art History Map</div>
+    <div id="map"></div>
+  </main>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const data=[
+{name:"Ajanta Caves",state:"Maharashtra",coords:[20.5519,75.7033],cat:"Classical & Ancient",style:"Ancient Buddhist Painting",artist:"Unknown / workshop tradition",img:"https://commons.wikimedia.org/wiki/Special:FilePath/Ajanta_Caves,_India.jpg",desc:"Famous rock-cut Buddhist caves with murals depicting Jataka stories, Buddhist themes, courtly life and everyday scenes. Major painting phases span the 2nd century BCE to the 5th–6th centuries CE."},
+{name:"Ellora Caves",state:"Maharashtra",coords:[20.0268,75.1793],cat:"Classical & Ancient",style:"Rock-cut Sculpture",artist:"Rashtrakuta-era patronage",img:"https://commons.wikimedia.org/wiki/Special:FilePath/Kailasa_Temple,_Ellora.jpg",desc:"A monumental complex containing Buddhist, Hindu and Jain monuments. The Kailasa Temple is one of India's most celebrated achievements in rock-cut architecture and sculpture."},
+{name:"Puri",state:"Odisha",coords:[19.8135,85.8312],cat:"Textile & Decorative",style:"Pattachitra",artist:"Traditional artisan communities",img:"https://commons.wikimedia.org/wiki/Special:FilePath/Pattachitra_Odisha.jpg",desc:"A major centre of Pattachitra painting associated with the Jagannath tradition. Paintings use strong outlines, decorative borders and mythological subjects."},
+{name:"Machilipatnam",state:"Andhra Pradesh",coords:[16.1875,81.1389],cat:"Textile & Decorative",style:"Kalamkari",artist:"Traditional Kalamkari artisans",img:"https://commons.wikimedia.org/wiki/Special:FilePath/Kalamkari.jpg",desc:"Associated with Kalamkari textile painting. Designs include mythological narratives, floral ornament and elaborate figures made through hand-drawing and block-printing traditions."},
+{name:"Madhubani / Mithila",state:"Bihar",coords:[26.35,86.07],cat:"Folk & Tribal",style:"Madhubani Painting",artist:"Sita Devi and other Mithila artists",img:"https://commons.wikimedia.org/wiki/Special:FilePath/Madhubani_painting.jpg",desc:"Known for strong outlines, dense patterning and symbolic animals, plants and mythological scenes. The tradition moved from domestic ritual spaces into wider public recognition during the 20th century."},
+{name:"Warli Region / Palghar",state:"Maharashtra",coords:[19.99,72.73],cat:"Folk & Tribal",style:"Warli Art",artist:"Warli community artists",img:"https://commons.wikimedia.org/wiki/Special:FilePath/Warli_painting.jpg",desc:"Recognized for geometric human figures and scenes of farming, dancing, hunting and community life. Circles, triangles and lines form a distinctive visual vocabulary."},
+{name:"Mandla / Central Madhya Pradesh",state:"Madhya Pradesh",coords:[23.26,77.41],cat:"Folk & Tribal",style:"Gond Art",artist:"Jangarh Singh Shyam and Gond artists",img:"https://commons.wikimedia.org/wiki/Special:FilePath/Gond_painting.jpg",desc:"Gond art often depicts animals, plants, myths and the natural world through rhythmic lines, dots and patterned surfaces. Jangarh Singh Shyam helped bring the tradition to international attention."},
+{name:"Kangra",state:"Himachal Pradesh",coords:[32.0998,76.2691],cat:"Miniature & Court",style:"Kangra / Pahari Miniature",artist:"Court painters under Raja Sansar Chand",img:"https://commons.wikimedia.org/wiki/Special:FilePath/Kangra_painting.jpg",desc:"An 18th-century miniature tradition celebrated for lyrical landscapes, delicate figures and devotional Radha-Krishna themes."},
+{name:"Delhi & Agra",state:"North India",coords:[28.6139,77.2090],cat:"Miniature & Court",style:"Mughal Miniature",artist:"Mughal court ateliers",img:"https://commons.wikimedia.org/wiki/Special:FilePath/Akbarnama.jpg",desc:"Mughal court painting combined Persian, Indian and later European influences. Illustrated manuscripts, portraits, court scenes, plants and animals became major subjects."},
+{name:"Kolkata",state:"West Bengal",coords:[22.5726,88.3639],cat:"Modern Indian Art",style:"Bengal School",artist:"Abanindranath Tagore",img:"https://commons.wikimedia.org/wiki/Special:FilePath/Bharat_Mata_by_Abanindranath_Tagore.jpg",desc:"Kolkata became a centre of the Bengal School in the late 19th and early 20th centuries. Artists sought an Indian visual identity drawing from miniature traditions and Asian wash techniques."},
+{name:"Thanjavur",state:"Tamil Nadu",coords:[10.7870,79.1378],cat:"Textile & Decorative",style:"Tanjore Painting",artist:"Traditional Thanjavur painters",img:"https://commons.wikimedia.org/wiki/Special:FilePath/Tanjore_painting.jpg",desc:"A devotional painting tradition known for rich colours, gold foil, relief work and ornate compositions, rooted in the court and temple culture of Thanjavur."},
+{name:"Mysuru",state:"Karnataka",coords:[12.2958,76.6394],cat:"Textile & Decorative",style:"Mysore Painting",artist:"Wodeyar-era court tradition",img:"https://commons.wikimedia.org/wiki/Special:FilePath/Mysore_painting.jpg",desc:"Known for delicate line work, subdued colours, devotional subjects and distinctive gold decoration developed around the Mysore court."}
+];
+
+const colors={"Classical & Ancient":"#8b4513","Folk & Tribal":"#b23a48","Miniature & Court":"#2f5d8c","Textile & Decorative":"#477a52","Modern Indian Art":"#8a5a9e"};
+const map=L.map('map').setView([22.5,80.5],5);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'&copy; OpenStreetMap contributors'}).addTo(map);
+
+const markers=[];
+function popup(p){
+return `<div class="popup">
+<img src="${p.img}" onerror="this.style.display='none'">
+<h2>${p.name}</h2><div class="tag">${p.style}</div>
+<p><strong>Region:</strong> ${p.state}</p>
+<p><strong>Artist / tradition:</strong> ${p.artist}</p>
+<p>${p.desc}</p></div>`;
+}
+data.forEach((p,i)=>{
+const icon=L.divIcon({className:'',html:`<div style="width:16px;height:16px;background:${colors[p.cat]};border:2px solid white;border-radius:50%;box-shadow:0 1px 4px #555"></div>`,iconSize:[16,16],iconAnchor:[8,8]});
+const m=L.marker(p.coords,{icon}).bindPopup(popup(p));
+m.addTo(map); markers.push(m);
+});
+
+function renderList(){
+const q=document.getElementById('search').value.toLowerCase();
+const enabled=[...document.querySelectorAll('.layer input')].filter(x=>x.checked).map(x=>x.dataset.cat);
+const list=document.getElementById('list'); list.innerHTML='';
+data.forEach((p,i)=>{
+const matches=enabled.includes(p.cat) && (p.name+' '+p.state+' '+p.style+' '+p.artist+' '+p.desc).toLowerCase().includes(q);
+markers[i].setOpacity(matches?1:0);
+if(!matches)return;
+const div=document.createElement('div');div.className='item';
+div.innerHTML=`<h3>${p.name}</h3><p>${p.style} · ${p.state}</p><span class="badge">${p.cat}</span>`;
+div.onclick=()=>{map.setView(p.coords,7);markers[i].openPopup()};
+list.appendChild(div);
+});
+}
+document.getElementById('search').addEventListener('input',renderList);
+document.querySelectorAll('.layer input').forEach(x=>x.addEventListener('change',renderList));
+renderList();
+
+const legend=L.control({position:'bottomright'});
+legend.onAdd=()=>{const d=L.DomUtil.create('div','legend');d.innerHTML='<b>Art categories</b>'+Object.entries(colors).map(([k,v])=>`<span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${v};margin-right:5px"></span>${k}<br>`).join('');return d};
+legend.addTo(map);
+</script>
+</body>
+</html>
